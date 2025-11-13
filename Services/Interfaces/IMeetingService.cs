@@ -10,7 +10,7 @@ namespace ZoomMeetingAPI.Services.Interfaces
         Task<ZoomMeetingResponseDto> GetMeetingAsync(string meetingId);
         // ✅ ADD: Recording toggle
         // Task<bool> ToggleRecordingAsync(long meetingId, string recordingType);
-        Task<bool> ToggleRecordingAsync(long meetingId, bool enableRecording);
+        Task<RecordingToggleResult> ToggleRecordingAsync(long meetingId, bool enableRecording);
         Task<List<ZoomMeetingResponseDto>> GetAllMeetingsAsync();
         
         // ✅ ADD: Recurring meetings

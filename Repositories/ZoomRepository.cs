@@ -632,19 +632,17 @@ namespace ZoomMeetingAPI.Repositories
          /// <summary>
         /// Enable or disable recording for a meeting
         /// </summary>
-        public async Task<bool> ToggleRecordingAsync(string meetingId, bool enableRecording)
+        public async Task<RecordingToggleResult> ToggleRecordingAsync(string meetingId, bool enableRecording)
         {
             try
             {
-                // Determine recording type based on boolean
-                string recordingType = enableRecording ? "cloud" : "none";
-                // Note: Use "local" instead of "cloud" for free accounts
+                string requestedType = enableRecording ? "cloud" : "none";
 
                 _logger.LogInformation(
                     "Setting recording for meeting {MeetingId} to {Enabled} (type: {RecordingType})",
                     meetingId,
                     enableRecording ? "ENABLED" : "DISABLED",
-                    recordingType
+                    requestedType
                 );
 
                 var accessToken = await _authService.GetAccessTokenAsync();
@@ -656,7 +654,7 @@ namespace ZoomMeetingAPI.Repositories
                 {
                     settings = new
                     {
-                        auto_recording = recordingType
+                        auto_recording = requestedType
                     }
                 };
 
@@ -676,16 +674,32 @@ namespace ZoomMeetingAPI.Repositories
                         response.StatusCode,
                         error
                     );
-                    return false;
+                    
+                    return new RecordingToggleResult
+                    {
+                        Success = false,
+                        ActualRecordingType = "none",
+                        Message = $"Failed to update recording settings"
+                    };
                 }
 
+                // ✅ Verify what was actually set by getting the meeting details
+                var actualType = await GetActualRecordingTypeAsync(meetingId, accessToken);
+
                 _logger.LogInformation(
-                    "✅ Recording {Status} for meeting {MeetingId}",
+                    "✅ Recording {Status} for meeting {MeetingId} - Requested: {Requested}, Actual: {Actual}",
                     enableRecording ? "ENABLED" : "DISABLED",
-                    meetingId
+                    meetingId,
+                    requestedType,
+                    actualType
                 );
 
-                return true;
+                return new RecordingToggleResult
+                {
+                    Success = true,
+                    ActualRecordingType = actualType,
+                    Message = $"Recording {(enableRecording ? "enabled" : "disabled")} successfully"
+                };
             }
             catch (Exception ex)
             {
@@ -693,6 +707,51 @@ namespace ZoomMeetingAPI.Repositories
                 throw;
             }
         }
+
+        // ✅ NEW METHOD: Verify what Zoom actually set
+            private async Task<string> GetActualRecordingTypeAsync(string meetingId, string accessToken)
+            {
+                try
+                {
+                    _httpClient.DefaultRequestHeaders.Clear();
+                    _httpClient.DefaultRequestHeaders.Authorization =
+                        new AuthenticationHeaderValue("Bearer", accessToken);
+
+                    var response = await _httpClient.GetAsync($"meetings/{meetingId}");
+                    
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var content = await response.Content.ReadAsStringAsync();
+                        var meetingData = JsonSerializer.Deserialize<JsonElement>(content);
+                        
+                        // Navigate to settings.auto_recording
+                        if (meetingData.TryGetProperty("settings", out var settings))
+                        {
+                            if (settings.TryGetProperty("auto_recording", out var autoRecording))
+                            {
+                                var recordingType = autoRecording.GetString();
+                                _logger.LogInformation(
+                                    "Verified recording type from Zoom for meeting {MeetingId}: {RecordingType}",
+                                    meetingId,
+                                    recordingType
+                                );
+                                return recordingType ?? "none";
+                            }
+                        }
+                    }
+                    
+                    _logger.LogWarning(
+                        "Could not verify recording type for meeting {MeetingId}, assuming 'none'",
+                        meetingId
+                    );
+                    return "none";
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error getting actual recording type for meeting {MeetingId}", meetingId);
+                    return "none";
+                }
+            }
    
     }
 }

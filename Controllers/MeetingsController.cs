@@ -121,21 +121,30 @@ namespace ZoomMeetingAPI.Controllers
             {
                 var result = await _meetingService.ToggleRecordingAsync(meetingId, dto.EnableRecording);
                 
+                if (!result.Success)
+                {
+                    return BadRequest(new 
+                    { 
+                        success = false,
+                        meetingId,
+                        message = result.Message
+                    });
+                }
+
+                // ✅ Return VERIFIED recording type from Zoom
                 return Ok(new 
                 { 
-                    success = result,
+                    success = true,
                     meetingId,
-                    recordingEnabled = dto.EnableRecording,
-                    recordingType = dto.EnableRecording ? "cloud" : "none",
-                    message = dto.EnableRecording 
-                        ? "Recording enabled for this meeting" 
-                        : "Recording disabled for this meeting"
+                    recordingEnabled = result.ActualRecordingType != "none",
+                    recordingType = result.ActualRecordingType,  // ✅ Verified from Zoom
+                    message = result.Message
                 });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error toggling recording for meeting {MeetingId}", meetingId);
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(new { message = "An error occurred while toggling recording" });
             }
         }
 

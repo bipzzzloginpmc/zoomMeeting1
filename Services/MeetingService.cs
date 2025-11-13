@@ -1,4 +1,5 @@
 using AutoMapper;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -14,15 +15,18 @@ namespace ZoomMeetingAPI.Services
         private readonly IZoomMeetingRepository _repository;
         private readonly IZoomRepository _repo;
         private readonly IMapper _mapper;
+        private ILogger<MeetingService> _logger;
 
         public MeetingService(
             IZoomMeetingRepository repository,
             IZoomRepository repo,
-            IMapper mapper)
+            IMapper mapper,
+            ILogger<MeetingService> logger)
         {
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
             _repo=repo??throw new ArgumentNullException(nameof(repo));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
+            this._logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
        public async Task<ZoomMeetingResponseDto> CreateZoomLiveClassAsync(ZoomMeetingDto meetingDto)
             {
@@ -235,29 +239,51 @@ namespace ZoomMeetingAPI.Services
         }
 
 
-        public async Task<bool> ToggleRecordingAsync(long meetingId, bool enableRecording)
+       public async Task<RecordingToggleResult> ToggleRecordingAsync(long meetingId, bool enableRecording)
         {
             try
             {
-                // Update in Zoom
+                // Update in Zoom and get ACTUAL type that was set
                 var result = await _repo.ToggleRecordingAsync(meetingId.ToString(), enableRecording);
 
-                if (result)
+                if (result.Success)
                 {
-                    // Update in database
+                    // Update database with VERIFIED recording type from Zoom
                     var dbMeeting = await _repository.GetByMeetingIdAsync(meetingId);
                     if (dbMeeting != null)
                     {
-                        dbMeeting.AutoRecording = enableRecording ? "cloud" : "none";
+                        // ✅ Store ACTUAL verified type, not requested type
+                        dbMeeting.AutoRecording = result.ActualRecordingType;
                         dbMeeting.UpdatedAt = DateTime.UtcNow;
                         await _repository.UpdateAsync(dbMeeting);
+                        
+                        _logger.LogInformation(
+                            "✅ Database updated: Meeting {MeetingId} recording = '{ActualType}' (verified from Zoom)",
+                            meetingId,
+                            result.ActualRecordingType
+                        );
                     }
+                    else
+                    {
+                        _logger.LogWarning(
+                            "Meeting {MeetingId} not found in database",
+                            meetingId
+                        );
+                    }
+                }
+                else
+                {
+                    _logger.LogWarning(
+                        "Recording toggle failed for meeting {MeetingId}, database not updated",
+                        meetingId
+                    );
                 }
 
                 return result;
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Failed to toggle recording for meeting {MeetingId}", meetingId);
                 throw new Exception($"Failed to toggle recording: {ex.Message}", ex);
             }
         }

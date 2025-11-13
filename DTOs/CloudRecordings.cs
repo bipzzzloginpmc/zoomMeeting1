@@ -160,4 +160,11 @@ namespace ZoomMeetingAPI.DTOs
             public bool EnableRecording { get; set; }
             // public string RecordingType { get; set; } 
         }
+
+        public class RecordingToggleResult
+            {
+                public bool Success { get; set; }
+                public string ActualRecordingType { get; set; }  // What Zoom actually has set
+                public string Message { get; set; }
+            }
 }

@@ -17,6 +17,6 @@ namespace ZoomMeetingAPI.Repositories.Interfaces
         Task<ZoomMeetingResponseDto> CreateRecurringMeetingAsync(RecurringMeetingDto dto);
         Task<List<MeetingOccurrenceDto>> GetRecurringMeetingOccurrencesAsync(string meetingId);
         Task DeleteMeetingOccurrenceAsync(string meetingId, string occurrenceId);
-        Task<bool> ToggleRecordingAsync(string meetingId, bool enableRecording);
+         Task<RecordingToggleResult> ToggleRecordingAsync(string meetingId, bool enableRecording);
     }
 }
