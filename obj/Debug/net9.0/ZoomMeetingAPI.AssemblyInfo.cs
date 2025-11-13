@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ZoomMeetingAPI")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d2617fa3ae5e803ace5b25605fbd289022d9d3cb")]
 [assembly: System.Reflection.AssemblyProductAttribute("ZoomMeetingAPI")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ZoomMeetingAPI")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
