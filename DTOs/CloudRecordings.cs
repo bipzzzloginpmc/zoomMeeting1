@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
 namespace ZoomMeetingAPI.DTOs
@@ -149,4 +150,14 @@ namespace ZoomMeetingAPI.DTOs
         [JsonPropertyName("meetings")]
         public List<ZoomCloudRecordingResponse> Meetings { get; set; }
     }
+
+        /// <summary>
+        /// DTO for enabling/disabling recording
+        /// </summary>
+        public class ToggleRecordingDto
+        {
+            [Required]
+            public bool EnableRecording { get; set; }
+            // public string RecordingType { get; set; } 
+        }
 }

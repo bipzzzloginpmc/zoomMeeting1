@@ -9,5 +9,14 @@ namespace ZoomMeetingAPI.Repositories.Interfaces
         Task<ZoomMeetingResponseDto> CreateMeetingAsync(ZoomMeetingDto dto);
         Task<ZoomMeetingResponseDto> GetMeetingAsync(string meetingId);
         Task<List<string>> AddInviteesAsync(string meetingId, List<InviteeDto> invitees);
+
+        // ✅ ADD: Recording toggle
+        // Task<bool> ToggleRecordingAsync(string meetingId, string recordingType);
+        
+        // ✅ ADD: Recurring meetings
+        Task<ZoomMeetingResponseDto> CreateRecurringMeetingAsync(RecurringMeetingDto dto);
+        Task<List<MeetingOccurrenceDto>> GetRecurringMeetingOccurrencesAsync(string meetingId);
+        Task DeleteMeetingOccurrenceAsync(string meetingId, string occurrenceId);
+        Task<bool> ToggleRecordingAsync(string meetingId, bool enableRecording);
     }
 }

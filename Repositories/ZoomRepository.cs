@@ -304,5 +304,395 @@ namespace ZoomMeetingAPI.Repositories
                 new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
             )!;
         }
+    
+            /// <summary>
+        /// Toggle recording type for a meeting
+        /// </summary>
+        // public async Task<bool> ToggleRecordingAsync(string meetingId, string recordingType)
+        // {
+        //     try
+        //     {
+        //         // Validate recording type
+        //         var validTypes = new[] { "cloud", "local", "none" };
+        //         if (!validTypes.Contains(recordingType.ToLower()))
+        //         {
+        //             throw new ArgumentException(
+        //                 $"Invalid recording type. Must be: {string.Join(", ", validTypes)}"
+        //             );
+        //         }
+
+        //         _logger.LogInformation(
+        //             "Toggling recording for meeting {MeetingId} to {RecordingType}",
+        //             meetingId,
+        //             recordingType
+        //         );
+
+        //         var accessToken = await _authService.GetAccessTokenAsync();
+        //         _httpClient.DefaultRequestHeaders.Clear();
+        //         _httpClient.DefaultRequestHeaders.Authorization =
+        //             new AuthenticationHeaderValue("Bearer", accessToken);
+
+        //         var updateBody = new
+        //         {
+        //             settings = new
+        //             {
+        //                 auto_recording = recordingType.ToLower()
+        //             }
+        //         };
+
+        //         var content = new StringContent(
+        //             JsonSerializer.Serialize(updateBody),
+        //             Encoding.UTF8,
+        //             "application/json"
+        //         );
+
+        //         var response = await _httpClient.PatchAsync($"meetings/{meetingId}", content);
+
+        //         if (!response.IsSuccessStatusCode)
+        //         {
+        //             var error = await response.Content.ReadAsStringAsync();
+        //             _logger.LogError(
+        //                 "Failed to toggle recording: {Status} - {Error}",
+        //                 response.StatusCode,
+        //                 error
+        //             );
+        //             return false;
+        //         }
+
+        //         _logger.LogInformation(
+        //             "✅ Recording toggled successfully: {MeetingId} -> {RecordingType}",
+        //             meetingId,
+        //             recordingType
+        //         );
+
+        //         return true;
+        //     }
+        //     catch (Exception ex)
+        //     {
+        //         _logger.LogError(ex, "Error toggling recording for meeting {MeetingId}", meetingId);
+        //         throw;
+        //     }
+        // }
+
+/// <summary>
+/// Create a recurring meeting
+/// </summary>
+        public async Task<ZoomMeetingResponseDto> CreateRecurringMeetingAsync(RecurringMeetingDto dto)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(dto.Topic))
+                    throw new ArgumentException("Topic is required");
+
+                if (dto.Duration <= 0)
+                    throw new ArgumentException("Duration must be greater than 0");
+
+                _logger.LogInformation("Creating recurring meeting: {Topic}", dto.Topic);
+
+                var accessToken = await _authService.GetAccessTokenAsync();
+                _httpClient.DefaultRequestHeaders.Clear();
+                _httpClient.DefaultRequestHeaders.Authorization =
+                    new AuthenticationHeaderValue("Bearer", accessToken);
+
+                // Determine meeting type
+                int meetingType;
+                object bodyObj;
+
+                if (dto.RecurrenceType == RecurrenceType.NoFixedTime)
+                {
+                    // Type 3: Recurring with no fixed time
+                    meetingType = 3;
+                    
+                    bodyObj = new
+                    {
+                        topic = dto.Topic,
+                        type = meetingType,
+                        duration = dto.Duration,
+                        timezone = dto.Timezone ?? "UTC",
+                        agenda = dto.Agenda,
+                        settings = new
+                        {
+                            host_video = true,
+                            participant_video = true,
+                            join_before_host = true,
+                            mute_upon_entry = true,
+                            waiting_room = true,
+                            auto_recording = dto.AutoRecording ?? "cloud"
+                        }
+                    };
+                }
+                else
+                {
+                    // Type 8: Recurring with fixed time
+                    meetingType = 8;
+                    
+                    var startTime = dto.StartTime?.ToUniversalTime() ?? DateTime.UtcNow.AddDays(1);
+                    if (startTime <= DateTime.UtcNow.AddMinutes(5))
+                    {
+                        startTime = DateTime.UtcNow.AddMinutes(10);
+                    }
+
+                    var recurrenceBody = BuildRecurrenceObject(dto);
+
+                    bodyObj = new
+                    {
+                        topic = dto.Topic,
+                        type = meetingType,
+                        start_time = startTime.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                        duration = dto.Duration,
+                        timezone = dto.Timezone ?? "UTC",
+                        agenda = dto.Agenda,
+                        recurrence = recurrenceBody,
+                        settings = new
+                        {
+                            host_video = true,
+                            participant_video = true,
+                            join_before_host = true,
+                            mute_upon_entry = true,
+                            waiting_room = true,
+                            auto_recording = dto.AutoRecording ?? "cloud"
+                        }
+                    };
+                }
+
+                var content = new StringContent(
+                    JsonSerializer.Serialize(bodyObj, new JsonSerializerOptions 
+                    { 
+                        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull 
+                    }),
+                    Encoding.UTF8,
+                    "application/json"
+                );
+
+                var response = await _httpClient.PostAsync("users/me/meetings", content);
+                var json = await response.Content.ReadAsStringAsync();
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogError("Zoom API Error: {Status} - {Response}",
+                        response.StatusCode, json);
+                    throw new HttpRequestException($"Zoom API Error: {response.StatusCode} - {json}");
+                }
+
+                var zoomResponse = JsonSerializer.Deserialize<ZoomMeetingResponseDto>(
+                    json,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+                );
+
+                _logger.LogInformation(
+                    "Recurring meeting created: ID={MeetingId}, Type={Type}",
+                    zoomResponse.MeetingId,
+                    meetingType
+                );
+
+                return zoomResponse;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating recurring meeting");
+                throw;
+            }
+        }
+
+/// <summary>
+/// Get all occurrences of a recurring meeting
+/// </summary>
+        public async Task<List<MeetingOccurrenceDto>> GetRecurringMeetingOccurrencesAsync(string meetingId)
+        {
+            try
+            {
+                var accessToken = await _authService.GetAccessTokenAsync();
+                _httpClient.DefaultRequestHeaders.Clear();
+                _httpClient.DefaultRequestHeaders.Authorization =
+                    new AuthenticationHeaderValue("Bearer", accessToken);
+
+                var response = await _httpClient.GetAsync($"meetings/{meetingId}");
+                var json = await response.Content.ReadAsStringAsync();
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    throw new HttpRequestException($"Failed to get meeting: {response.StatusCode}");
+                }
+
+                // Check if response has occurrences
+                using var doc = JsonDocument.Parse(json);
+                var root = doc.RootElement;
+                
+                if (!root.TryGetProperty("occurrences", out var occurrencesElement))
+                {
+                    _logger.LogInformation("Meeting {MeetingId} has no occurrences", meetingId);
+                    return new List<MeetingOccurrenceDto>();
+                }
+
+                var occurrences = JsonSerializer.Deserialize<List<MeetingOccurrenceDto>>(
+                    occurrencesElement.GetRawText(),
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+                );
+
+                return occurrences ?? new List<MeetingOccurrenceDto>();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting occurrences for meeting {MeetingId}", meetingId);
+                throw;
+            }
+        }
+
+/// <summary>
+/// Delete a specific occurrence
+/// </summary>
+        public async Task DeleteMeetingOccurrenceAsync(string meetingId, string occurrenceId)
+{
+    try
+    {
+        var accessToken = await _authService.GetAccessTokenAsync();
+        _httpClient.DefaultRequestHeaders.Clear();
+        _httpClient.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", accessToken);
+
+        var response = await _httpClient.DeleteAsync(
+            $"meetings/{meetingId}?occurrence_id={occurrenceId}"
+        );
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.ReadAsStringAsync();
+            throw new HttpRequestException($"Failed to delete occurrence: {error}");
+        }
+
+        _logger.LogInformation("Deleted occurrence {OccurrenceId}", occurrenceId);
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Error deleting occurrence");
+        throw;
+    }
+}
+
+// Helper method to build recurrence object
+        private object BuildRecurrenceObject(RecurringMeetingDto dto)
+        {
+            var recurrence = new Dictionary<string, object>
+            {
+                ["type"] = (int)dto.RecurrencePattern
+            };
+
+            switch (dto.RecurrencePattern)
+            {
+                case RecurrencePattern.Daily:
+                    recurrence["repeat_interval"] = dto.RepeatInterval;
+                    if (dto.EndDate.HasValue)
+                    {
+                        recurrence["end_date_time"] = dto.EndDate.Value.ToString("yyyy-MM-ddTHH:mm:ssZ");
+                    }
+                    if (dto.Occurrences.HasValue)
+                    {
+                        recurrence["end_times"] = dto.Occurrences.Value;
+                    }
+                    break;
+
+                case RecurrencePattern.Weekly:
+                    recurrence["repeat_interval"] = dto.RepeatInterval;
+                    recurrence["weekly_days"] = dto.WeeklyDays; // e.g., "1,3,5"
+                    if (dto.EndDate.HasValue)
+                    {
+                        recurrence["end_date_time"] = dto.EndDate.Value.ToString("yyyy-MM-ddTHH:mm:ssZ");
+                    }
+                    if (dto.Occurrences.HasValue)
+                    {
+                        recurrence["end_times"] = dto.Occurrences.Value;
+                    }
+                    break;
+
+                case RecurrencePattern.Monthly:
+                    recurrence["repeat_interval"] = dto.RepeatInterval;
+                    if (dto.MonthlyDay.HasValue)
+                    {
+                        recurrence["monthly_day"] = dto.MonthlyDay.Value;
+                    }
+                    else if (dto.MonthlyWeek.HasValue && dto.MonthlyWeekDay.HasValue)
+                    {
+                        recurrence["monthly_week"] = dto.MonthlyWeek.Value;
+                        recurrence["monthly_week_day"] = dto.MonthlyWeekDay.Value;
+                    }
+                    if (dto.EndDate.HasValue)
+                    {
+                        recurrence["end_date_time"] = dto.EndDate.Value.ToString("yyyy-MM-ddTHH:mm:ssZ");
+                    }
+                    if (dto.Occurrences.HasValue)
+                    {
+                        recurrence["end_times"] = dto.Occurrences.Value;
+                    }
+                    break;
+            }
+
+            return recurrence;
+        }
+   
+         /// <summary>
+        /// Enable or disable recording for a meeting
+        /// </summary>
+        public async Task<bool> ToggleRecordingAsync(string meetingId, bool enableRecording)
+        {
+            try
+            {
+                // Determine recording type based on boolean
+                string recordingType = enableRecording ? "cloud" : "none";
+                // Note: Use "local" instead of "cloud" for free accounts
+
+                _logger.LogInformation(
+                    "Setting recording for meeting {MeetingId} to {Enabled} (type: {RecordingType})",
+                    meetingId,
+                    enableRecording ? "ENABLED" : "DISABLED",
+                    recordingType
+                );
+
+                var accessToken = await _authService.GetAccessTokenAsync();
+                _httpClient.DefaultRequestHeaders.Clear();
+                _httpClient.DefaultRequestHeaders.Authorization =
+                    new AuthenticationHeaderValue("Bearer", accessToken);
+
+                var updateBody = new
+                {
+                    settings = new
+                    {
+                        auto_recording = recordingType
+                    }
+                };
+
+                var content = new StringContent(
+                    JsonSerializer.Serialize(updateBody),
+                    Encoding.UTF8,
+                    "application/json"
+                );
+
+                var response = await _httpClient.PatchAsync($"meetings/{meetingId}", content);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var error = await response.Content.ReadAsStringAsync();
+                    _logger.LogError(
+                        "Failed to toggle recording: {Status} - {Error}",
+                        response.StatusCode,
+                        error
+                    );
+                    return false;
+                }
+
+                _logger.LogInformation(
+                    "✅ Recording {Status} for meeting {MeetingId}",
+                    enableRecording ? "ENABLED" : "DISABLED",
+                    meetingId
+                );
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error toggling recording for meeting {MeetingId}", meetingId);
+                throw;
+            }
+        }
+   
     }
 }

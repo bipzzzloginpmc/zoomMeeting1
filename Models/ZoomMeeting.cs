@@ -60,5 +60,9 @@ namespace ZoomMeetingAPI.Models
         
         [StringLength(20)]
         public string? AutoRecording { get; set; }
+
+        // Add to existing ZoomMeeting class
+        public bool IsRecurring { get; set; }
+        public string? RecurrencePattern { get; set; } // "Daily", "Weekly", "Monthly"
     }
 }

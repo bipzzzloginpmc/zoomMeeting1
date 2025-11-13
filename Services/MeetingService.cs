@@ -83,5 +83,183 @@ namespace ZoomMeetingAPI.Services
         {
             return await _repo.GetMeetingAsync(meetingId);
         }
+
+        // public async Task<bool> ToggleRecordingAsync(long meetingId, string recordingType)
+        // {
+        //     try
+        //     {
+        //         // Update in Zoom
+        //         var result = await _repo.ToggleRecordingAsync(meetingId.ToString(), recordingType);
+
+        //         if (result)
+        //         {
+        //             // Update in database
+        //             var dbMeeting = await _repository.GetByMeetingIdAsync(meetingId);
+        //             if (dbMeeting != null)
+        //             {
+        //                 dbMeeting.AutoRecording = recordingType;
+        //                 dbMeeting.UpdatedAt = DateTime.UtcNow;
+        //                 await _repository.UpdateAsync(dbMeeting);
+        //             }
+        //         }
+
+        //         return result;
+        //     }
+        //     catch (Exception ex)
+        //     {
+        //         throw new Exception($"Failed to toggle recording: {ex.Message}", ex);
+        //     }
+        // }
+
+        public async Task<List<ZoomMeetingResponseDto>> GetAllMeetingsAsync()
+        {
+            try
+            {
+                var meetings = await _repository.GetAllAsync();
+                
+                return meetings.Select(m => new ZoomMeetingResponseDto
+                {
+                    Id = m.Id,
+                    MeetingId = m.MeetingId,
+                    Topic = m.Topic,
+                    Type = m.Type,
+                    StartTime = m.StartTime,
+                    Duration = m.Duration,
+                    JoinUrl = m.JoinUrl,
+                    StartUrl = m.StartUrl,
+                    Password = m.Password,
+                    AutoRecording = m.AutoRecording,
+                    CreatedAt = m.CreatedAt
+                }).ToList();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to get meetings: {ex.Message}", ex);
+            }
+        }
+
+        public async Task<ZoomMeetingResponseDto> CreateRecurringMeetingAsync(RecurringMeetingDto dto)
+        {
+            try
+            {
+                // Validate
+                ValidateRecurringMeeting(dto);
+
+                // Create in Zoom
+                var zoomResponse = await _repo.CreateRecurringMeetingAsync(dto);
+
+                // Save to database
+                var meeting = new ZoomMeeting
+                {
+                    MeetingId = zoomResponse.MeetingId ?? 0,
+                    Topic = zoomResponse.Topic ?? dto.Topic,
+                    Type = zoomResponse.Type ?? (dto.RecurrenceType == RecurrenceType.FixedTime ? 8 : 3),
+                    StartTime = zoomResponse.StartTime ?? dto.StartTime,
+                    Duration = dto.Duration,
+                    Timezone = dto.Timezone ?? "UTC",
+                    Agenda = dto.Agenda,
+                    JoinUrl = zoomResponse.JoinUrl,
+                    StartUrl = zoomResponse.StartUrl,
+                    Password = zoomResponse.Password,
+                    HostEmail = zoomResponse.HostEmail ?? string.Empty,
+                    AutoRecording = dto.AutoRecording ?? "cloud",
+                    CreatedAt = DateTime.UtcNow,
+                    // Add recurring metadata
+                    IsRecurring = true,
+                    RecurrencePattern = dto.RecurrencePattern.ToString()
+                };
+
+                await _repository.AddAsync(meeting);
+
+                return new ZoomMeetingResponseDto
+                {
+                    Id = meeting.Id,
+                    MeetingId = meeting.MeetingId,
+                    Topic = meeting.Topic,
+                    Type = meeting.Type,
+                    StartTime = meeting.StartTime,
+                    Duration = meeting.Duration,
+                    JoinUrl = meeting.JoinUrl,
+                    StartUrl = meeting.StartUrl,
+                    Password = meeting.Password,
+                    CreatedAt = meeting.CreatedAt
+                };
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to create recurring meeting: {ex.Message}", ex);
+            }
+        }
+
+        public async Task<List<MeetingOccurrenceDto>> GetMeetingOccurrencesAsync(long meetingId)
+        {
+            try
+            {
+                return await _repo.GetRecurringMeetingOccurrencesAsync(meetingId.ToString());
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to get occurrences: {ex.Message}", ex);
+            }
+        }
+
+        public async Task DeleteOccurrenceAsync(long meetingId, string occurrenceId)
+        {
+            try
+            {
+                await _repo.DeleteMeetingOccurrenceAsync(meetingId.ToString(), occurrenceId);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to delete occurrence: {ex.Message}", ex);
+            }
+        }
+
+        private void ValidateRecurringMeeting(RecurringMeetingDto dto)
+        {
+            if (dto.RecurrenceType == RecurrenceType.FixedTime && !dto.StartTime.HasValue)
+            {
+                throw new ArgumentException("StartTime is required for fixed time recurring meetings");
+            }
+
+            if (dto.RecurrencePattern == RecurrencePattern.Weekly && string.IsNullOrEmpty(dto.WeeklyDays))
+            {
+                throw new ArgumentException("WeeklyDays is required for weekly recurrence");
+            }
+
+            if (dto.RecurrencePattern == RecurrencePattern.Monthly && 
+                !dto.MonthlyDay.HasValue && !dto.MonthlyWeek.HasValue)
+            {
+                throw new ArgumentException("MonthlyDay or MonthlyWeek is required for monthly recurrence");
+            }
+        }
+
+
+        public async Task<bool> ToggleRecordingAsync(long meetingId, bool enableRecording)
+        {
+            try
+            {
+                // Update in Zoom
+                var result = await _repo.ToggleRecordingAsync(meetingId.ToString(), enableRecording);
+
+                if (result)
+                {
+                    // Update in database
+                    var dbMeeting = await _repository.GetByMeetingIdAsync(meetingId);
+                    if (dbMeeting != null)
+                    {
+                        dbMeeting.AutoRecording = enableRecording ? "cloud" : "none";
+                        dbMeeting.UpdatedAt = DateTime.UtcNow;
+                        await _repository.UpdateAsync(dbMeeting);
+                    }
+                }
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to toggle recording: {ex.Message}", ex);
+            }
+        }
     }
 }

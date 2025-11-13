@@ -139,3 +139,4 @@
 /Users/bipinthapa/Desktop/DOT NET TEST PROJECT/ZoomMeeting/ZoomMeetingApp/ZoomMeetingAPI/obj/Debug/net9.0/ZoomMeetingAPI.pdb
 /Users/bipinthapa/Desktop/DOT NET TEST PROJECT/ZoomMeeting/ZoomMeetingApp/ZoomMeetingAPI/obj/Debug/net9.0/ZoomMeetingAPI.genruntimeconfig.cache
 /Users/bipinthapa/Desktop/DOT NET TEST PROJECT/ZoomMeeting/ZoomMeetingApp/ZoomMeetingAPI/obj/Debug/net9.0/ref/ZoomMeetingAPI.dll
+/Users/bipinthapa/Desktop/DOT NET TEST PROJECT/ZoomMeeting/ZoomMeetingApp/ZoomMeetingAPI/obj/Debug/net9.0/ZoomMeetingAPI.sourcelink.json
