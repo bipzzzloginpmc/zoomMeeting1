@@ -1,0 +1,180 @@
+<mat-card>
+  <mat-card-header>
+    <mat-card-title>Zoom Meetings</mat-card-title>
+    <button mat-raised-button color="primary" (click)="createMeeting()">
+      <mat-icon>add</mat-icon>
+      Create Meeting
+    </button>
+  </mat-card-header>
+
+  <mat-card-content>
+    <mat-form-field>
+      <mat-label>Filter</mat-label>
+      <input matInput (keyup)="applyFilter($event)" placeholder="Ex. ium" #input>
+    </mat-form-field>
+
+    <div class="mat-elevation-z8">
+      <table mat-table [dataSource]="dataSource" matSort>
+        <!-- ID Column -->
+        <ng-container matColumnDef="id">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header> ID </th>
+          <td mat-cell *matCellDef="let row"> {{row.id}} </td>
+        </ng-container>
+
+         <!-- meetingId Column -->
+        <ng-container matColumnDef="meetingId">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header> Meeting ID </th>
+          <td mat-cell *matCellDef="let row"> {{row.meetingId}} </td>
+        </ng-container>
+
+        <!-- Topic Column -->
+        <ng-container matColumnDef="topic">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header> Topic </th>
+          <td mat-cell *matCellDef="let row"> {{row.topic}} </td>
+        </ng-container>
+
+        
+        <!-- type Column -->
+        <ng-container matColumnDef="type">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header> type </th>
+          <td mat-cell *matCellDef="let row"> {{row.type}} </td>
+        </ng-container>
+
+        <!-- Start Time Column -->
+        <ng-container matColumnDef="startTime">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header> Start Time </th>
+          <td mat-cell *matCellDef="let row"> {{row.startTime | date:'medium'}} </td>
+        </ng-container>
+
+        <!-- Duration Column -->
+        <ng-container matColumnDef="duration">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header> Duration (min) </th>
+          <td mat-cell *matCellDef="let row"> {{row.duration}} </td>
+        </ng-container>
+
+          
+          <!-- timezone Column -->
+        <ng-container matColumnDef="timezone">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header> timezone </th>
+          <td mat-cell *matCellDef="let row"> {{row.timezone}} </td>
+        </ng-container>
+          
+          <!-- agenda Column -->
+        <ng-container matColumnDef="agenda">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header> agenda </th>
+          <td mat-cell *matCellDef="let row"> {{row.agenda}} </td>
+        </ng-container>
+          
+          <!-- joinUrl Column -->
+        <ng-container matColumnDef="joinUrl">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header> joinUrl </th>
+          <td mat-cell *matCellDef="let row"> {{row.joinUrl}} </td>
+        </ng-container>
+          
+          <!-- startUrl Column -->
+        <ng-container matColumnDef="startUrl">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header> startUrl </th>
+          <td mat-cell *matCellDef="let row"> {{row.startUrl}} </td>
+        </ng-container>
+          
+          <!-- password Column -->
+        <ng-container matColumnDef="password">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header> password </th>
+          <td mat-cell *matCellDef="let row"> {{row.password}} </td>
+        </ng-container>
+
+<!-- hostEmail Column -->
+        <ng-container matColumnDef="hostEmail">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header> hostEmail </th>
+          <td mat-cell *matCellDef="let row"> {{row.hostEmail}} </td>
+        </ng-container>
+
+<!-- createdAt Column -->
+        <ng-container matColumnDef="createdAt">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header> createdAt </th>
+          <td mat-cell *matCellDef="let row"> {{row.createdAt}} </td>
+        </ng-container>
+
+<!-- updatedAt Column -->
+        <ng-container matColumnDef="updatedAt">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header> updatedAt </th>
+          <td mat-cell *matCellDef="let row"> {{row.updatedAt}} </td>
+        </ng-container>
+
+<!-- isDeleted Column -->
+        <ng-container matColumnDef="isDeleted">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header> isDeleted </th>
+          <td mat-cell *matCellDef="let row"> {{row.isDeleted}} </td>
+        </ng-container>
+       
+  <!-- hostVideo Column -->
+        <ng-container matColumnDef="hostVideo">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header> hostVideo </th>
+          <td mat-cell *matCellDef="let row"> {{row.hostVideo}} </td>
+        </ng-container>   
+  
+  <!-- participantVideo Column -->
+        <ng-container matColumnDef="participantVideo">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header> participantVideo </th>
+          <td mat-cell *matCellDef="let row"> {{row.participantVideo}} </td>
+        </ng-container>
+
+<!-- joinBeforeHost Column -->
+        <ng-container matColumnDef="joinBeforeHost">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header> joinBeforeHost </th>
+          <td mat-cell *matCellDef="let row"> {{row.joinBeforeHost}} </td>
+        </ng-container>
+
+<!-- muteUponEntry Column -->
+        <ng-container matColumnDef="muteUponEntry">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header> muteUponEntry </th>
+          <td mat-cell *matCellDef="let row"> {{row.muteUponEntry}} </td>
+        </ng-container>
+
+<!-- waitingRoom Column -->
+        <ng-container matColumnDef="waitingRoom">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header> waitingRoom </th>
+          <td mat-cell *matCellDef="let row"> {{row.waitingRoom}} </td>
+        </ng-container>
+
+<!-- approvalType Column -->
+        <ng-container matColumnDef="approvalType">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header> approvalType </th>
+          <td mat-cell *matCellDef="let row"> {{row.approvalType}} </td>
+        </ng-container>
+
+<!-- autoRecording Column -->
+        <ng-container matColumnDef="autoRecording">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header> autoRecording </th>
+          <td mat-cell *matCellDef="let row"> {{row.autoRecording}} </td>
+        </ng-container>
+
+        <!-- Actions Column -->
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef> Actions </th>
+          <td mat-cell *matCellDef="let row">
+            <button mat-icon-button color="primary" (click)="viewMeeting(row.id)" matTooltip="View">
+              <mat-icon>visibility</mat-icon>
+            </button>
+            <button mat-icon-button color="accent" (click)="editMeeting(row.id)" matTooltip="Edit">
+              <mat-icon>edit</mat-icon>
+            </button>
+            <button mat-icon-button color="warn" (click)="deleteMeeting(row.id)" matTooltip="Delete">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+
+        <!-- Row shown when there is no matching data. -->
+        <tr class="mat-row" *matNoDataRow>
+          <td class="mat-cell" colspan="4">No data matching the filter "{{input.value}}"</td>
+        </tr>
+      </table>
+
+      <mat-paginator [pageSizeOptions]="[5, 10, 25, 100]" aria-label="Select page of meetings"></mat-paginator>
+    </div>
+  </mat-card-content>
+</mat-card>

@@ -1,0 +1,20 @@
+mat-card {
+  margin: 20px;
+}
+
+.form-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 20px 0;
+}
+
+mat-form-field {
+  width: 100%;
+}
+
+mat-card-actions {
+  display: flex;
+  gap: 10px;
+  padding: 16px;
+}

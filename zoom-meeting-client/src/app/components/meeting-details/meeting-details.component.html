@@ -1,0 +1,112 @@
+<mat-card *ngIf="meeting">
+  <mat-card-header>
+    <mat-card-title>Meeting Details</mat-card-title>
+  </mat-card-header>
+
+  <mat-card-content>
+    <div class="details-grid">
+      <div class="detail-item">
+        <strong>meetingId:</strong>
+        <span>{{ meeting.meetingId }}</span>
+      </div>
+
+      <div class="detail-item">
+        <strong>Topic:</strong>
+        <span>{{ meeting.topic }}</span>
+      </div>
+
+
+
+      <div class="detail-item">
+        <strong>type:</strong>
+        <span>{{ meeting.type }}</span>
+      </div>
+      <div class="detail-item">
+        <strong>timezone:</strong>
+        <span>{{ meeting.timezone }}</span>
+      </div>
+      <div class="detail-item">
+        <strong>agenda:</strong>
+        <span>{{ meeting.agenda }}</span>
+      </div>
+      <div class="detail-item">
+        <strong>hostEmail:</strong>
+        <span>{{ meeting.hostEmail }}</span>
+      </div>
+      <div class="detail-item">
+        <strong>createdAt:</strong>
+        <span>{{ meeting.createdAt }}</span>
+      </div>
+      <div class="detail-item">
+        <strong>hostVideo:</strong>
+        <span>{{ meeting.hostVideo }}</span>
+      </div>
+      <div class="detail-item">
+        <strong>participantVideo:</strong>
+        <span>{{ meeting.participantVideo }}</span>
+      </div>
+       <div class="detail-item">
+        <strong>joinBeforeHost:</strong>
+        <span>{{ meeting.joinBeforeHost }}</span>
+      </div>
+       <div class="detail-item">
+        <strong>muteUponEntry:</strong>
+        <span>{{ meeting.muteUponEntry }}</span>
+      </div>
+       <div class="detail-item">
+        <strong>waitingRoom:</strong>
+        <span>{{ meeting.waitingRoom }}</span>
+      </div>
+       <div class="detail-item">
+        <strong>approvalType:</strong>
+        <span>{{ meeting.approvalType }}</span>
+      </div>
+       <div class="detail-item">
+        <strong>autoRecording:</strong>
+        <span>{{ meeting.autoRecording }}</span>
+      </div>
+      <div class="detail-item">
+        <strong>Start Time:</strong>
+        <span>{{ meeting.startTime | date:'medium' }}</span>
+      </div>
+
+      <div class="detail-item">
+        <strong>Duration:</strong>
+        <span>{{ meeting.duration }} minutes</span>
+      </div>
+
+      <div class="detail-item">
+        <strong>start URL:</strong>
+        <a [href]="meeting.startUrl" target="_blank">{{ meeting.startUrl }}</a>
+      </div>
+
+      <div class="detail-item">
+        <strong>Join URL:</strong>
+        <a [href]="meeting.joinUrl" target="_blank">{{ meeting.joinUrl }}</a>
+      </div>
+
+      <div class="detail-item">
+        <strong>Meeting ID:</strong>
+        <span>{{ meeting.zoomMeetingId }}</span>
+      </div>
+
+      <div class="detail-item">
+        <strong>Password:</strong>
+        <span>{{ meeting.password }}</span>
+      </div>
+    </div>
+  </mat-card-content>
+
+  <mat-card-actions>
+    <button mat-raised-button color="primary" [routerLink]="['/meetings', meetingId, 'edit']">
+      <mat-icon>edit</mat-icon>
+      Edit Meeting
+    </button>
+    <button mat-raised-button color="basic" routerLink="/meetings">
+      <mat-icon>arrow_back</mat-icon>
+      Back to List
+    </button>
+  </mat-card-actions>
+</mat-card>
+
+<mat-spinner *ngIf="!meeting"></mat-spinner>
